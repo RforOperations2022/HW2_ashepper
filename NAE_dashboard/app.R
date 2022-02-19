@@ -26,23 +26,23 @@ sidebar <- dashboardSidebar(
     menuItem('Data Table', tabName = 'data', icon = icon('table'))
   ),
   
-  # INPUT == overall score ---------------------------------------------
-  sliderInput("overall_score", "Select Range for Overall Cities Index Score",
+  # INPUT == overall score --------------------------------------------
+  sliderInput(inputId = 'SCORE_SELECT', "Select Range for Overall Cities Index Score",
               min = 0, 
               max = 5,
               value = c(0,5)),
   
   # INPUT - total population ------------------------------------------------
-  sliderInput("pop_tot", "Select Range for City's Total Population",
+  sliderInput(inputId = "POPTOT_SELECT", "Select Range for City's Total Population",
               min = 200000, 
               max = 10000000,
               value = c(200000, 10000000)),
   
   # INPUT - total fb population ---------------------------------------
-  sliderInput("pop_fb", "Select Range for City's Total Foreign Born Population",
-              min = 9000, 
+  sliderInput(inputId = "POPFB_SELECT", "Select Range for City's Total Foreign Born Population",
+              min = 1000, 
               max = 4000000,
-              value = c(9000,4000000))
+              value = c(1000,4000000))
   
 )
 
@@ -72,17 +72,57 @@ body <- dashboardBody(tabItems(
                      width = 12,
                      
                      # intro tab
-                     tabPanel('Introduction', textOutput('introtext')),
+                     tabPanel('Introduction', textOutput('introtext'),
+                     # add an explanation section
+                     fluidRow(
+                       tabBox(width=12,
+                              p("There are three main scores to pay attention to. The 'Overall Cities Index Score', which you can filter on the left hand side of the dashboard, takes into account both socioeconomic outcomes and city policies. The 'Overall Policy Score' looks at just the policies in place in a City. The Socioeconomic Score takes into account only socioeconomic outcomes of foreign-born residents. 
+                              You can see the average Overall Policy and OVerall Socioeconomic scores highlighted at the top of the dashboard.")
+                                
+                              )),
+                     ),
                      
                      # tab 1: scatterplot fb share by rank
-                     tabPanel('Population Share',plotlyOutput('fbshare_scatterplot')),
+                     tabPanel('Population Share',plotlyOutput('fbshare_scatterplot'),
+                              # add an explanation section
+                              fluidRow(
+                                tabBox(width=12,
+                                    h3("The Data Behind This Graph:"),
+                                    br(),
+                                    p("Overall Policy scores for each city are developed by assessing a City's policies in government leadership, economic empowerment, inclusivity, community, legal support, and emergency management. The foreign born share of the population is derived from 2019 ACS data."),
+                                    br(),
+                                    p("Here, cities are colored by 'government leadership' score. This score is created by assessing policies relating to government leadership specifically. This includes policies, declarations, having a liason dedicated to immigrant affairs, and other actions that demonstrate the municipality's dedication to serving foreign born residents.")
+                              ))),
         
                      # tab 2: naturalization rate by policy score - scatterplot
-                    tabPanel('Naturalization', plotlyOutput('nat_scatterplot')),
+                    tabPanel('Naturalization', plotlyOutput('nat_scatterplot'),
+                             # add an explanation section
+                             fluidRow(
+                               tabBox(width=12,
+                                      h3("The Data Behind This Graph:"),
+                                      br(),
+                                      p("Overall Policy scores for each city are developed by assessing a City's policies in government leadership, economic empowerment, inclusivity, community, legal support, and emergency management. Naturalization rates are derived derived from 2019 ACS data."),
+                                      br(),
+                                      p("Here, cities are colored by their 'community' score. This score is created by assessing policies relating to community building. This includes partnering with local organization to provide serives to immigrants, establishing a council to advise
+                                        officials on immigrant affairs, providing funding or in-kind support to immigrant serving organizations, etc. "),
+                                      br(),
+                                      p("Cities dots are sized by the share of the population that is foreign-born. The larger the dot, the greater the share of the population that is foreign-born."))
+                             )),
                      
                      # tab panel 3: homeownership scatterplot
-                     tabPanel('Homeownership', plotlyOutput(outputId = 'home_scatterplot'))
-                              ),
+                     tabPanel('Homeownership', plotlyOutput(outputId = 'home_scatterplot'),
+                              # add an explanation section
+                              fluidRow(
+                                tabBox(width=12,
+                                       h3("The Data Behind This Graph:"),
+                                       br(),
+                                       p("Overall Policy scores for each city are developed by assessing a City's policies in government leadership, economic empowerment, inclusivity, community, legal support, and emergency management. Homeownership rates are derived derived from 2019 ACS data."),
+                                       br(),
+                                       p("Here, cities are colored by their 'economic empowerment' score. This score is created by assessing policies relating to creating inclsuive workforce. This includes professional licensing, vocational training programs, entrepreneurship support programs, etc."),
+                                       br(),
+                                       p("Cities dots are sized by the share of the population that is foreign-born. The larger the dot, the greater the share of the population that is foreign-born."))
+                              ))
+                              )
     )),
     
     tabItem(tabName = 'data',
@@ -111,12 +151,12 @@ server <- function(input, output, session) {
   # main dataset --> filter dataframe with input selections
   data_subset <- reactive({
     NAEdata %>%
-      filter((overall_score >= input$overall_score[1]) &
-          (overall_score <= input$overall_score[2]) &
-           (pop_tot >= input$pop_tot[1]) & 
-           (pop_tot <= pop_tot[2]) & 
-           (pop_fb >= input$pop_fb[1]) &
-           (pop_fb<= input$pop_fb[2])
+      filter((overall_score >= input$SCORE_SELECT[1]) &
+          (overall_score <= input$SCORE_SELECT[2]) &
+           (pop_tot >= input$POPTOT_SELECT[1]) & 
+           (pop_tot <= input$POPTOT_SELECT[2]) & 
+           (pop_fb >= input$POPFB_SELECT[1]) &
+           (pop_fb<= input$POPFB_SELECT[2])
       )
   })
   
@@ -159,7 +199,7 @@ server <- function(input, output, session) {
   output$avg_se_score <- renderInfoBox({
     sescore <- data_subset()
     meanpolsescore <- mean(sescore$se_score)
-    valueBox(subtitle = 'Average Socioeconomic Score', 
+    valueBox(subtitle = 'Average OVerall Socioeconomic Score', 
              value = round(meanpolsescore, digits = 2),
              color = 'purple')
   })
@@ -184,7 +224,7 @@ server <- function(input, output, session) {
                 ))) +
       geom_point(aes(color = factor(gov_leadership))) + 
       labs(x = "Foreign Born Share of Population", 
-           y = "Policy Score", 
+           y = "Overall Policy Score", 
            title = "Does City-Level Inclusion Policy Correlate with FB Share of Population")
       }) 
   
@@ -197,9 +237,9 @@ server <- function(input, output, session) {
               y = policy_score,
               text = paste("City:", city
                 ))) +
-      geom_point(aes(color = factor(Community))) + 
-      labs(x = "Naturalization Rate of Foreign BOrn Population", 
-           y = "Policy Score", 
+      geom_point(aes(color = factor(Community), size = pop_fb_share)) + 
+      labs(x = "Naturalization Rate of Foreign Born Population", 
+           y = "Overall Policy Score", 
            title = "Does City-Level Inclusion Policy Correlate with Naturalization Rates")
     
   }) 
@@ -213,9 +253,9 @@ server <- function(input, output, session) {
               y = policy_score,
               text = paste("City:", city
                 ))) +
-      geom_point(aes(color = factor(econ_empower))) + 
-      labs(x = "Homeownership Rate of Foreign BOrn Population", 
-           y = "Policy Score", 
+      geom_point(aes(color = factor(econ_empower), size = pop_fb_share)) + 
+      labs(x = "Homeownership Rate of Foreign Born Population", 
+           y = "Overall Policy Score", 
            title = "Does City-Level Inclusion Policy Correlate FB Homeownership")
     
   }) 
@@ -226,7 +266,7 @@ server <- function(input, output, session) {
     
     DT::datatable(data = data_subset(),
                   options = list(pageLength = 10),
-                  rownames = TRUE)
+                  rownames = FALSE)
     
   })
   
