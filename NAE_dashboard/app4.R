@@ -22,11 +22,11 @@ sidebar <- dashboardSidebar(
   sidebarMenu(
     id = "tabs",
     
-    menuItem('Plots', tabName = 'dashboard', icon = icon('chart-bar')),
+    menuItem('Plots', tabName = 'dashboard', icon = icon('bar-chart')),
     menuItem('Data Table', tabName = 'data', icon = icon('table'))
   ),
   
-  # INPUT == overall score ---------------------------------------------
+  # INPUT == overal score ---------------------------------------------
   sliderInput("overall_score", "Select Range for Overall Cities Index Score",
               min = 0, 
               max = 5,
@@ -71,17 +71,14 @@ body <- dashboardBody(tabItems(
               tabBox(title = '', 
                      width = 12,
                      
-                     # intro tab
-                     tabPanel('Introduction', textOutput('introtext')),
-                     
                      # tab 1: scatterplot fb share by rank
-                     tabPanel('Population Share',plotlyOutput('fbshare_scatterplot')),
+                     tabPanel('Score Rank',plotlyOutput('fbshare_scatterplot')),
         
                      # tab 2: naturalization rate by policy score - scatterplot
-                    tabPanel('Naturalization', plotlyOutput('nat_scatterplot')),
+                    tabPanel('Naturalization', plotlyOutput('nat_scatterplot'),
                      
                      # tab panel 3: homeownership scatterplot
-                     tabPanel('Homeownership', plotlyOutput(outputId = 'home_scatterplot'))
+                     tabPanel('Homeownership', plotlyOutput(outputId = 'home_scatterplot')))
                               ),
     )),
     
@@ -124,7 +121,9 @@ server <- function(input, output, session) {
   
   # reactive - fb share of pop by rank
   share_scatterplot <- reactive({
-    data_subset()
+    data_subset() %>%
+      arrange(overall_ranking)
+      
   })
   
   # reactive - naturalization rate by policy score scatterplot
@@ -145,7 +144,7 @@ server <- function(input, output, session) {
     count <- nrow(cities)
     valueBox(subtitle = 'Total Cities in Dataset', 
              value = count,
-             icon = icon("PERSON"),
+             icon = icon("person"),
              color = 'yellow')
   })
   
@@ -155,6 +154,7 @@ server <- function(input, output, session) {
     meanpolscore <- mean(polscore$policy_score)
     valueBox(subtitle = 'Average Overall Policy Score', 
              value = round(meanpolscore, digits = 2),
+             icon = icon("person"),
              color = 'blue')
   })
   
@@ -166,21 +166,18 @@ server <- function(input, output, session) {
              value = round(meanpolsescore, digits = 2),
              color = 'purple')
   })
-  
-  # intro text 
-  output$introtext <- renderText({'hello intro'})
 
-  # scatterplot fb share by policy score
+  # scatterplot fb share by rank
   output$fbshare_scatterplot <- renderPlotly({
     scatter_rank <- share_scatterplot()
     ggplot(data = scatter_rank,
-            aes(x = pop_fb_share,
-                y = policy_score,
+            aes(x = overall_ranking,
+                y = pop_fb_share,
                 text = paste("City:", city
                 ))) +
       geom_point(aes(color = factor(gov_leadership))) + 
-      labs(x = "Foreign Born Share of Population", 
-           y = "Policy Score", 
+      labs(x = "Policy Score Rank", 
+           y = "Foreign Born Share of Population", 
            title = "Does City-Level Inclusion Policy Correlate with FB Share of Population")
       }) 
   
@@ -221,7 +218,7 @@ server <- function(input, output, session) {
   output$fulldatatable <- DT::renderDataTable({
     
     DT::datatable(data = data_subset(),
-                  options = list(pageLength = 10),
+                  options = list(pageLength = 20),
                   rownames = TRUE)
     
   })
