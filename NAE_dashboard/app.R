@@ -30,19 +30,19 @@ sidebar <- dashboardSidebar(
   sliderInput("overall_score", "Select Range for Overall Cities Index Score",
               min = 0, 
               max = 5,
-              value = range(NAEdata$overall_score)),
+              value = c(0,5)),
   
   # INPUT - total population ------------------------------------------------
   sliderInput("pop_tot", "Select Range for City's Total Population",
-              min = min(NAEdata$pop_tot), 
-              max = max(NAEdata$pop_tot),
-              value = range(NAEdata$pop_tot)),
+              min = 200000, 
+              max = 10000000,
+              value = c(200000, 10000000)),
   
   # INPUT - total fb population ---------------------------------------
   sliderInput("pop_fb", "Select Range for City's Total Foreign Born Population",
-              min = min(NAEdata$pop_fb), 
-              max = max(NAEdata$pop_fb),
-              value = range(NAEdata$pop_fb))
+              min = 9000, 
+              max = 4000000,
+              value = c(9000,4000000))
   
 )
 
@@ -111,14 +111,12 @@ server <- function(input, output, session) {
   # main dataset --> filter dataframe with input selections
   data_subset <- reactive({
     NAEdata %>%
-      filter(
-         overall_score >= input$overall_score[1],
-         overall_score <= input$overall_score[2],
-         pop_tot >= input$pop_tot[1],
-         pop_tot <= pop_tot[2],
-         pop_fb >= input$pop_fb[1],
-         pop_fb<= input$pop_fb[2]
-         
+      filter((overall_score >= input$overall_score[1]) &
+          (overall_score <= input$overall_score[2]) &
+           (pop_tot >= input$pop_tot[1]) & 
+           (pop_tot <= pop_tot[2]) & 
+           (pop_fb >= input$pop_fb[1]) &
+           (pop_fb<= input$pop_fb[2])
       )
   })
   
@@ -145,7 +143,6 @@ server <- function(input, output, session) {
     count <- nrow(cities)
     valueBox(subtitle = 'Total Cities in Dataset', 
              value = count,
-             icon = icon("PERSON"),
              color = 'yellow')
   })
   
@@ -168,7 +165,14 @@ server <- function(input, output, session) {
   })
   
   # intro text 
-  output$introtext <- renderText({'hello intro'})
+  output$introtext <- renderText({'Cities across the United States are implementing policies and programs aimed at
+    attracting and retaining foreign born residents. Some of these include language access initiatives, entrepreneurship support
+    programs targeted towards immigrants, and establishing offices or commissions for immigrant affairs. New American Economy (newamericaneconomy.org), 
+    a bipartisan immigration research and advocacy organization, annually collects data on immigration-related city policies
+    for the 100 largest cities in the United States. They use this data to create the ~NAE Cities Index~, which ranks
+    American cities by how "inclusive" their polcies are for foreign-born residents. This dashboard uses New American Economy data to explore
+    visual correlations between a NAE scorecard scores and characacteristics about the socioeconomic outcomes of its residents. 
+    The graphs here do not imply causation, but are a way to explore which cities are implementing policies aimed at attracting and retaining immigrants.'})
 
   # scatterplot fb share by policy score
   output$fbshare_scatterplot <- renderPlotly({
@@ -193,7 +197,7 @@ server <- function(input, output, session) {
               y = policy_score,
               text = paste("City:", city
                 ))) +
-      geom_point(aes(color = factor(civic_particip))) + 
+      geom_point(aes(color = factor(Community))) + 
       labs(x = "Naturalization Rate of Foreign BOrn Population", 
            y = "Policy Score", 
            title = "Does City-Level Inclusion Policy Correlate with Naturalization Rates")
@@ -209,7 +213,7 @@ server <- function(input, output, session) {
               y = policy_score,
               text = paste("City:", city
                 ))) +
-      geom_point(aes(color = factor(civic_particip))) + 
+      geom_point(aes(color = factor(econ_empower))) + 
       labs(x = "Homeownership Rate of Foreign BOrn Population", 
            y = "Policy Score", 
            title = "Does City-Level Inclusion Policy Correlate FB Homeownership")
